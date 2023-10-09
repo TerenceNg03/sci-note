@@ -22,8 +22,17 @@ description:         Please see the README on GitHub at <https://github.com/Tere
 dependencies:
 - base >= 4.7 && < 5
 - scotty
-- wai-extra
+- wai
 - filepath
+- stm
+- aeson
+- directory
+- text
+- log-base
+- mtl
+- optics
+- fmt
+- unliftio-core
 
 ghc-options:
 - -Wall

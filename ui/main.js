@@ -32,15 +32,9 @@ app.whenReady().then(() => {
     console.log(process.argv[2]);
     scotty = child_process.spawn(
         path.resolve(basePath, './bin/sci-note-exe'),
-        [path.resolve(basePath, './build/')]
+        [path.resolve(basePath, './build/')],
+        { stdio: ["pipe", "inherit", "inherit"] }
     );
-    scotty.stdout.on('data', data => {
-        console.log(`Scotty: ${data}`);
-    });
-
-    scotty.stderr.on('data', data => {
-        console.error(`Scotty: ${data}`);
-    });
 
     createWindow()
 

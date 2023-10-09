@@ -25,7 +25,11 @@ source-repository head
 
 library
   exposed-modules:
+      Config
+      DataBase
       Lib
+      Server
+      Utils
   other-modules:
       Paths_sci_note
   autogen-modules:
@@ -34,10 +38,19 @@ library
       src
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
+    , directory
     , filepath
+    , fmt
+    , log-base
+    , mtl
+    , optics
     , scotty
-    , wai-extra
+    , stm
+    , text
+    , unliftio-core
+    , wai
   default-language: Haskell2010
 
 executable sci-note-exe
@@ -50,11 +63,20 @@ executable sci-note-exe
       app
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
+    , directory
     , filepath
+    , fmt
+    , log-base
+    , mtl
+    , optics
     , sci-note
     , scotty
-    , wai-extra
+    , stm
+    , text
+    , unliftio-core
+    , wai
   default-language: Haskell2010
 
 test-suite sci-note-test
@@ -68,9 +90,18 @@ test-suite sci-note-test
       test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
+    , directory
     , filepath
+    , fmt
+    , log-base
+    , mtl
+    , optics
     , sci-note
     , scotty
-    , wai-extra
+    , stm
+    , text
+    , unliftio-core
+    , wai
   default-language: Haskell2010
