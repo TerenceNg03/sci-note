@@ -13,7 +13,7 @@ main = do
     let base = case length args of
             x
                 | x >= 1 -> head args
-                | otherwise -> "./ui/build"
+                | otherwise -> ".electron/ui/"
     print args
     putStrLn $ "Static directory: " ++ base
     launchServer base

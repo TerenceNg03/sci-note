@@ -3,6 +3,12 @@ const {app, BrowserWindow} = require('electron')
 const path = require('node:path')
 const child_process = require('child_process')
 
+if (process.argv[2] === "dev") {
+    basePath = __dirname
+} else {
+    basePath = path.join(process.resourcesPath, "app/")
+}
+
 function createWindow() {
     // Create the browser window.
     const mainWindow = new BrowserWindow({
@@ -13,7 +19,7 @@ function createWindow() {
         }
     })
 
-    mainWindow.loadURL('http://localhost:3000/')
+    mainWindow.loadURL("http://localhost:3000")
 
     // Open the DevTools.
     // mainWindow.webContents.openDevTools()
@@ -23,7 +29,11 @@ function createWindow() {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-    scotty = child_process.spawn('../bin/sci-note-exe', [path.resolve(__dirname, '../ui/build/')])
+    console.log(process.argv[2]);
+    scotty = child_process.spawn(
+        path.resolve(basePath, './bin/sci-note-exe'),
+        [path.resolve(basePath, './build/')]
+    );
     scotty.stdout.on('data', data => {
         console.log(`Scotty: ${data}`);
     });
