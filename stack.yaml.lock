@@ -5,19 +5,15 @@
 
 packages:
 - completed:
-    name: monomer
+    hackage: scotty-0.20.1@sha256:f51d7062b2732115cb8b9c63ded0c7a94467ee4fc68ebbde18687a836b74bcd5,5226
     pantry-tree:
-      sha256: 971b266b84d4fa7831caad974a222f16123ac8cac56dcee768c70fe4a5cfaea9
-      size: 18557
-    sha256: a25e278bb3cf0302e1c5ebc6921b3e78be7d54a7e9e87082f616c7482855f566
-    size: 3000956
-    url: https://github.com/fjvallarino/monomer/archive/05c5d6c9b5d0649ad5da59b67cb0328fe82e7ed6.tar.gz
-    version: 1.5.1.0
+      sha256: 0a42c300e7e5ed06fba6216f28b3c67be3d46fafba9b68957786fb52d6517a3b
+      size: 1945
   original:
-    url: https://github.com/fjvallarino/monomer/archive/05c5d6c9b5d0649ad5da59b67cb0328fe82e7ed6.tar.gz
+    hackage: scotty-0.20.1
 snapshots:
 - completed:
-    sha256: 23bb9bb355bfdb1635252e120a29b712f0d5e8a6c6a65c5ab5bd6692f46c438e
-    size: 640457
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/21/7.yaml
-  original: lts-21.7
+    sha256: 60e54c1ba3c1e7163acf6dafa9d56b2d3b23f88a31ad53a1c9d888f32561f8da
+    size: 639819
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/21/14.yaml
+  original: lts-21.14
