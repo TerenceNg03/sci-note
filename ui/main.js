@@ -19,7 +19,7 @@ function createWindow() {
         }
     })
 
-    mainWindow.loadURL("http://localhost:3000")
+    mainWindow.loadURL("http://localhost:" + port)
 
     // Open the DevTools.
     // mainWindow.webContents.openDevTools()
@@ -33,10 +33,18 @@ app.whenReady().then(() => {
     scotty = child_process.spawn(
         path.resolve(basePath, './bin/sci-note-exe'),
         [path.resolve(basePath, './build/')],
-        { stdio: ["pipe", "inherit", "inherit"] }
     );
-
-    createWindow()
+    scotty.stdout.on('data', (data) => {
+        process.stdout.write(data);
+    });
+    scotty.stderr.on('data', (data) => {
+        port = parseInt(data);
+        console.log("Backend port is", port)
+        createWindow();
+        scotty.stderr.on('data', (data) => {
+            process.stderr.write(data)
+        });
+    });
 
     app.on('activate', function () {
         // On macOS it's common to re-create a window in the app when the

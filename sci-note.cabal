@@ -29,7 +29,6 @@ library
       DataBase
       Lib
       Server
-      Utils
   other-modules:
       Paths_sci_note
   autogen-modules:
@@ -45,11 +44,11 @@ library
     , fmt
     , log-base
     , mtl
+    , network
     , optics
     , scotty
     , stm
     , text
-    , unliftio-core
     , wai
   default-language: Haskell2010
 
@@ -70,12 +69,12 @@ executable sci-note-exe
     , fmt
     , log-base
     , mtl
+    , network
     , optics
     , sci-note
     , scotty
     , stm
     , text
-    , unliftio-core
     , wai
   default-language: Haskell2010
 
@@ -97,11 +96,11 @@ test-suite sci-note-test
     , fmt
     , log-base
     , mtl
+    , network
     , optics
     , sci-note
     , scotty
     , stm
     , text
-    , unliftio-core
     , wai
   default-language: Haskell2010

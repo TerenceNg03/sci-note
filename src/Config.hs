@@ -19,7 +19,6 @@ data Config = Config
     , logFile :: FilePath
     , dbFile :: FilePath
     , staticDir :: FilePath
-    , port :: Int
     }
 
 makeFieldLabelsNoPrefix ''Config
@@ -35,5 +34,4 @@ getConfig staticDir' = do
             , logFile = logDir </> "sci-note.log"
             , dbFile = docDir </> "db.json"
             , staticDir
-            , port = 3000
             }

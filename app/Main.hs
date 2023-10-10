@@ -3,9 +3,9 @@
 module Main (main) where
 
 import Config (getConfig)
+import Log.Backend.StandardOutput.Bulk (withBulkStdOutLogger)
 import Server (runServer)
 import System.Environment (getArgs)
-import Log.Backend.StandardOutput.Bulk (withBulkStdOutLogger)
 
 main :: IO ()
 main = do
