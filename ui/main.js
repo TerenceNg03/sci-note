@@ -12,8 +12,10 @@ if (process.argv[2] === "dev") {
 function createWindow() {
     // Create the browser window.
     const mainWindow = new BrowserWindow({
-        width: 800,
+        width: 900,
         height: 600,
+        minWidth: 900,
+        minHeight: 600,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js')
         }
