@@ -33,6 +33,7 @@ dependencies:
 - mtl
 - optics
 - fmt
+- uuid
 
 ghc-options:
 - -Wall
