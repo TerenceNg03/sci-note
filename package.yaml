@@ -26,6 +26,7 @@ dependencies:
 - wai
 - filepath
 - stm
+- containers
 - aeson
 - directory
 - text

@@ -1,4 +1,5 @@
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
@@ -10,14 +11,15 @@ import Control.Concurrent.STM (atomically, modifyTVar, newTVarIO, readTVar, read
 import Control.Exception (SomeException, bracketOnError, catch)
 import Control.Monad.Reader (MonadIO (liftIO), forever)
 import Data.Aeson (encode, encodeFile)
-import Data.Text (Text, pack)
+import Data.Text (Text, pack, unpack)
 import Data.Text.Lazy (fromStrict)
-import DataBase (DBConfig (dbFile), newPaper, readDB)
+import DataBase (DBConfig (dbFile), insertPaper, lookupUUID, newPaper, readDB)
 import Fmt (format)
 import Log (LogT, defaultLogLevel, logInfo_, runLogT)
 import Log.Logger (Logger)
 import Network.Socket (Family (AF_INET), SockAddr (SockAddrInet), SocketType (Stream), bind, close, listen, socket, socketPort, tupleToHostAddress, withSocketsDo)
 import Network.Wai (Request (rawPathInfo), requestMethod)
+import Optics ((^.))
 import System.FilePath ((</>))
 import System.IO (hPrint, stderr)
 import Web.Scotty.Trans (ScottyT, captureParam, defaultOptions, file, function, get, matchAny, next, raw, regex, request, scottySocketT, text)
@@ -28,27 +30,37 @@ dispatch Config{..} = do
         r <- request
         logInfo_ $ format "{} {}" (show $ requestMethod r) (show $ rawPathInfo r)
         next
-    get "/" $ file $ staticDir </> "index.html"
-    get "/api/papers/length" $ do
-        n <- runSTM $ do
-            db <- readTVar dbT
-            return $ length db
-        text . fromStrict . pack . show $ n
     get "/api/papers/new" $ do
         paper <- liftIO newPaper
-        runSTM $ modifyTVar dbT (paper :)
+        runSTM $ modifyTVar dbT $ insertPaper paper
         saveFile
         raw $ encode paper
+    get "/api/papers/uuid/:uuid" $ do
+        uuid <- captureParam "uuid"
+        result <- runSTM $ do
+            db <- readTVar dbT
+            return $ lookupUUID uuid db
+        case result of
+            Left err -> reportError $ unpack err
+            Right paper -> raw $ encode paper
+    get "/api/favorites" $ do
+        db <- runSTM $ readTVar dbT
+        raw $ encode $ db ^. #favorites
+    get "/api/tags" $ do
+        db <- runSTM $ readTVar dbT
+        raw $ encode $ db ^. #tagList
     get (regex "^/api(/.*)?") $ do
         r <- request
         logInfo_ $ format "Invalid api request: {} {}" (show $ requestMethod r) (show $ rawPathInfo r)
-        text "API request not recognized"
+        reportError "API request not recognized"
+    get "/" $ file $ staticDir </> "index.html"
     get (regex "^/.*") $ do
         path <- captureParam "0"
         file $ staticDir </> drop 1 path
   where
     runSTM a = liftIO $ atomically a
     saveFile = liftIO $ putMVar saveSignal ()
+    reportError err = raw $ encode ("error" :: String, err :: String)
 
 serverFailed :: Text -> (ScottyT (LogT IO)) ()
 serverFailed msg = do
