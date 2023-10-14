@@ -1,21 +1,38 @@
 import {React} from 'react';
-import {List} from 'antd';
+import {List, Space, Tag} from 'antd';
 
 const papers = [
     {
-        title: 'Ant Design Title 1',
+        name: 'Software Transactional Memory',
+        tags: ['Haskell', 'STM']
     },
     {
-        title: 'Ant Design Title 2',
+        name: 'Ant Design Title 2',
+        tags: ['aaa']
     },
     {
-        title: 'Ant Design Title 3',
+        name: 'Ant Design Title 3',
+        tags: ['aaa']
     },
     {
-        title: 'Ant Design Title 4',
+        name: 'Ant Design Title 4',
+        tags: ['asdfsa']
     },
 ];
 
+const Title = (name) => {
+    return <p
+        style={{fontSize: '110%', padding: '0em 0em', margin:'0em'}}>
+        {name.name}
+    </p>
+}
+
+const Tags = (tags) => {
+    let tags_ = tags.tags.map((x) => {
+        return <Tag style={{fontSize: '100%', padding: '0.2em 0.4em'}}>{'#' + x}</Tag>
+    });
+    return <Space size={'small'}>{tags_}</Space>
+}
 
 const PaperList = () => {
     return (
@@ -26,8 +43,8 @@ const PaperList = () => {
             renderItem={(item, index) => (
                 <List.Item style={{padding: '1em 1.5em'}}>
                     <List.Item.Meta
-                        title={item.title}
-                        description="Description here"
+                        title=<Title name={item.name} />
+                        description=<Tags tags={item.tags} />
                     />
                 </List.Item>
             )}

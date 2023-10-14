@@ -8,7 +8,7 @@ const ToolBar = (isFavorite) => {
         icon = <HeartTwoTone />
     }
     return (
-        <div style={{display: 'inline-flex'}}>
+        <div id="toolbar" style={{display: 'inline-flex', padding:'0em 2em'}}>
             <Button type={'text'} size={'large'} icon={icon} />
             <Button type={'text'} size={'large'} icon={<DeleteOutlined />} />
             <Button type={'text'} size={'large'} icon={<PlusOutlined />} />

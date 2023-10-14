@@ -1,4 +1,4 @@
-import {React, useState} from 'react';
+import {React, useState, useEffect} from 'react';
 import {ConfigProvider, Layout, theme} from 'antd';
 import {Divider} from 'antd';
 import QuickAccess from './QuickAccess'
@@ -14,31 +14,53 @@ const paperSample = {
     title: 'Paper Title'
 }
 
+const onresize = () => {
+    window.onresize = fixSearchbar;
+    setTimeout(fixSearchbar, 10)
+    setTimeout(fixSearchbar, 100)
+    setTimeout(fixSearchbar, 1000)
+};
+
+const fixSearchbar = () => {
+    document.getElementById("searchbar").parentElement.style.width =
+        document.getElementById("header").clientWidth -
+        document.getElementById("toolbar").clientWidth - 10 + 'px';
+}
+
 const App = () => {
     const {token: {colorBgContainer}, } = theme.useToken();
     const [isFavorite, setIsFavorite] = useState([]);
+    useEffect(fixSearchbar);
+    useEffect(onresize);
+
     return (
         <ConfigProvider theme={{algorithm: [theme.defaultAlgorithm, theme.compactAlgorithm]}}>
             <Layout
                 style={{height: '100vh', overflow: 'hidden'}}
             >
-                <Sider style={{background: colorBgContainer}}>
+                <Sider width={'15em'} style={{background: colorBgContainer}}>
                     <QuickAccess />
                 </Sider>
                 <Layout style={{background: colorBgContainer}}>
-                    <Header style={{background: colorBgContainer, width: '100%', whiteSpace:'nowrap'}}>
+                    <Header id="header" style={{background: colorBgContainer, padding: '0em'}}>
                         <ToolBar isFavorite={isFavorite} />
-                        <Divider type='vertical' style={{padding: '0em 1em'}} />
                         <SearchBar />
                     </Header>
-                    <Divider type='horizontal' style={{margin: '0em'}} />
+                    <Divider type='horizontal' style={{display: 'inline-flex', margin: '0em'}} />
                     <Content style={{background: colorBgContainer}}>
                         <Layout style={{background: colorBgContainer, height: '100%'}}>
-                            <Sider width={'30%'} style={{background: colorBgContainer}}>
+                            <Sider width={'24em'} style={{background: colorBgContainer}}>
                                 <PaperList />
                             </Sider>
                             <Content style={{background: colorBgContainer}}>
-                                <Paper paper={paperSample} />
+                                <Layout style={{background: colorBgContainer, height: '100%'}}>
+                                    <Sider width={'1em'} style={{background: colorBgContainer, height: '100%'}}>
+                                        <Divider type='vertical' style={{height: '100%'}} />
+                                    </Sider>
+                                    <Content style={{background: colorBgContainer}}>
+                                        <Paper paper={paperSample} />
+                                    </Content>
+                                </Layout>
                             </Content>
                         </Layout>
                     </Content>
