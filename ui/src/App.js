@@ -7,6 +7,7 @@ import PaperList from './PaperList'
 import SearchBar from './SearchBar'
 import Paper from './Paper';
 import {Content} from 'antd/es/layout/layout';
+import './App.css'
 
 const {Header, Sider} = Layout;
 

@@ -1,9 +1,10 @@
-import {Tag, Descriptions, Space} from 'antd';
+import {Tag, Space} from 'antd';
 import {ConfigProvider} from 'antd';
 import enUSIntl from 'antd/lib/locale/en_US';
 import {ProDescriptions} from '@ant-design/pro-components';
 import {React, useRef} from 'react';
-
+import {Editable, useEditor} from "@wysimark/react"
+import {UploadOutlined} from '@ant-design/icons'
 
 const paper = {
     name: 'Software transactional memory',
@@ -11,9 +12,19 @@ const paper = {
     uuid: '123456',
     cite: 'Shavit, Nir, and Dan Touitou. "Software transactional memory." Proceedings of the fourteenth annual ACM symposium on Principles of distributed computing. 1995.',
     url: 'https://dl.acm.org/doi/pdf/10.1145/1400214.1400228',
-    lastAccessed: '20131012',
+    file: '/Users/<user-name>/sci-note/db.json',
     tags: ['abc', 'def'],
-    notes: "#Hello"
+    notes:
+        `# Title 
+\`\`\`javascript
+function greet(name) {
+console.log('Hello, ' + name + '!');
+}
+
+greet('John');
+\`\`\`
+
+### HTML`
 }
 
 const columns = [
@@ -31,12 +42,6 @@ const columns = [
         editable: false
     },
     {
-        title: 'last accessed',
-        key: 'lastAccessed',
-        dataIndex: 'lastAccessed',
-        valueType: 'date',
-    },
-    {
         title: 'url',
         key: 'url',
         dataIndex: 'url',
@@ -46,6 +51,36 @@ const columns = [
                 <a href={
                     "javascript:window.require('electron').shell.openExternal(" + JSON.stringify(dom) + ")"
                 }>{dom}</a>
+            );
+        },
+    },
+    {
+        title: 'file',
+        key: 'file',
+        dataIndex: 'file',
+        valueType: 'text',
+        editable: false,
+        render: (dom, entity, index, action) => {
+            return (
+                <Space>
+                    <a href={
+                        "javascript:window.require('electron').shell.openPath(" + JSON.stringify(dom) + ")"
+                    }>{dom}</a>
+                    <UploadOutlined onClick={() => {
+                        const {ipcRenderer} = window.require('electron');
+                        ipcRenderer.send('open-file',
+                            {
+                                defaultPath: JSON.stringify(dom),
+                                properties: ['openFile'],
+                            }
+                        );
+                        ipcRenderer.on('select-paper', (event, response) => {
+                            if (!response.canceled) {
+                                console.log(response.filePaths[0]);
+                            }
+                        })
+                    }} />
+                </Space>
             );
         },
     },
@@ -70,6 +105,7 @@ const Desc = (paper) => {
         <ProDescriptions
             actionRef={actionRef}
             bordered
+            style={{paddingBottom: '1em'}}
             formProps={{
                 onValuesChange: (e, f) => console.log(f),
             }}
@@ -84,12 +120,21 @@ const Desc = (paper) => {
 }
 
 const Paper = () => {
+    const editor = useEditor({})
+
     return (
         <ConfigProvider locale={enUSIntl}>
-            <div style={{fontSize: '120%', padding: '0em 1em'}}>
+            <div style={{fontSize: '120%', padding: '0em 1em 1em', overflowY: 'scroll', height: '100%'}}>
                 <h1>{paper.name}</h1>
                 <Tags paper={paper} />
                 <Desc paper={paper} />
+                <Editable
+                    editor={editor}
+                    value={paper.notes}
+                    onChange={
+                        (x) => {console.log('Markown change', x)}
+                    }
+                />
             </div>
         </ConfigProvider>
     )

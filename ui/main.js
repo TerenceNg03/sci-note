@@ -1,5 +1,5 @@
 // Modules to control application life and create native browser window
-const {app, BrowserWindow} = require('electron')
+const {app, BrowserWindow, ipcMain, dialog} = require('electron')
 const path = require('node:path')
 const child_process = require('child_process')
 
@@ -22,6 +22,12 @@ function createWindow(port) {
     // Open the DevTools.
     // mainWindow.webContents.openDevTools()
 }
+
+ipcMain.on('open-file', (event, data) => {
+    dialog.showOpenDialog(null, data).then(response => {
+        event.sender.send('select-paper', response);
+    });
+})
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -70,7 +76,7 @@ app.whenReady().then(() => {
 app.on('will-quit', function () {
     if (process.argv[2] !== "dev") {
         scotty.kill()
-    }       
+    }
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common

@@ -13,7 +13,15 @@ function getItem(label, key, icon, children, type) {
 
 const QuickAccess = () => {
     return (
-        <Menu items={menuItems} style={{padding: '1em', height: '100vh', overflow: 'scroll'}} />
+        <Menu
+            items={menuItems}
+            style={{
+                padding: '1em',
+                height: '100vh',
+                overflowY: 'scroll',
+                scrollbarWidth: 'none'
+            }}
+        />
     )
 }
 

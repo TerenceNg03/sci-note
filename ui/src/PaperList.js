@@ -22,7 +22,7 @@ const papers = [
 
 const Title = (name) => {
     return <p
-        style={{fontSize: '110%', padding: '0em 0em', margin:'0em'}}>
+        style={{fontSize: '110%', padding: '0em 0em', margin: '0em'}}>
         {name.name}
     </p>
 }
@@ -38,7 +38,7 @@ const PaperList = () => {
     return (
         <List
             itemLayout="horizontal"
-            style={{height: '100%', overflow: 'scroll'}}
+            style={{height: '100%', overflowY: 'scroll', scrollbarWidth: 'none'}}
             dataSource={papers}
             renderItem={(item, index) => (
                 <List.Item style={{padding: '1em 1.5em'}}>
