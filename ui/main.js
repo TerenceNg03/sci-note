@@ -14,13 +14,12 @@ function createWindow(port) {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: false,
             nodeIntegration: true
-        }
+        },
+        vibrancy: 'sidebar',
+        titleBarStyle: 'hiddenInset'
     })
 
     mainWindow.loadURL("http://localhost:" + port)
-
-    // Open the DevTools.
-    // mainWindow.webContents.openDevTools()
 }
 
 ipcMain.on('open-file', (event, data) => {

@@ -2,9 +2,9 @@ import {React} from 'react';
 import {Menu} from 'antd';
 
 const menuItems = [
-    getItem('Favorite', 'favourite', null, [getItem('Option 13', '0'), getItem('Option 14', '1')], 'group'),
-    getItem('Recent', 'recent', null, [getItem('Option 13', '3'), getItem('Option 14', '4')], 'group'),
-    getItem('Tags', 'tags', null, [getItem('Option 13', '5'), getItem('Option 14', '6')], 'group'),
+    getItem('Favorite', 'favorite', null, [getItem('Option 13', '0'), getItem('Option 14', '1')]),
+    getItem('Tags', 'tags', null, [getItem('Option 13', '5'), getItem('Option 14', '6')]),
+    getItem('Recent', 'recent', null, [getItem('Option 13', '3'), getItem('Option 14', '4')]),
 ];
 
 function getItem(label, key, icon, children, type) {
@@ -15,11 +15,14 @@ const QuickAccess = () => {
     return (
         <Menu
             items={menuItems}
+            mode='inline'
+            defaultOpenKeys={['favorite', 'recent', 'tags']}
+            inlineIndent='15'
             style={{
-                padding: '1em',
                 height: '100vh',
                 overflowY: 'scroll',
-                scrollbarWidth: 'none'
+                scrollbarWidth: 'none',
+                backgroundColor: 'transparent',
             }}
         />
     )

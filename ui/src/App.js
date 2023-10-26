@@ -35,11 +35,22 @@ const App = () => {
     useEffect(onresize);
 
     return (
-        <ConfigProvider theme={{algorithm: [theme.defaultAlgorithm, theme.compactAlgorithm]}}>
+        <ConfigProvider theme={{
+            algorithm: [theme.defaultAlgorithm, theme.compactAlgorithm],
+            components: {
+                Menu: {
+                    subMenuItemBg: 'transparent',
+                    itemHoverBg: 'transparent',
+                    itemActiveBg: 'rgba(0, 0, 0, 0.10)',
+                    itemSelectedBg: 'rgba(0, 0, 0, 0.10)',
+                    itemSelectedColor: 'rgba(0, 0, 0, 0.88)',
+                },
+            },
+        }}>
             <Layout
-                style={{height: '100vh', overflow: 'hidden'}}
+                style={{height: '100vh', overflow: 'hidden', backgroundColor: 'transparent'}}
             >
-                <Sider width={'15em'} style={{background: colorBgContainer}}>
+                <Sider width={'15em'} style={{backgroundColor: 'transparent', paddingTop: '40px'}}>
                     <QuickAccess />
                 </Sider>
                 <Layout style={{background: colorBgContainer}}>
