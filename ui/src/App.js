@@ -11,10 +11,6 @@ import './App.css'
 
 const {Header, Sider} = Layout;
 
-const paperSample = {
-    title: 'Paper Title'
-}
-
 const onresize = () => {
     window.onresize = fixSearchbar;
     setTimeout(fixSearchbar, 10)
@@ -30,9 +26,28 @@ const fixSearchbar = () => {
 
 const App = () => {
     const {token: {colorBgContainer}, } = theme.useToken();
-    const [isFavorite, setIsFavorite] = useState([]);
+    const [favorite, setFavorite] = useState([]);
+    const [recent, setRecent] = useState([]);
+    const [tags, setTags] = useState([]);
+    const [paper, setPaper] = useState({"paper":[], "tags":[]})
+    const [paperId, setPaperId] = useState(1)
     useEffect(fixSearchbar);
     useEffect(onresize);
+    useEffect(() => {
+        fetch("/api/favorites")
+            .then((response) => response.json())
+            .then((f) => {setFavorite(f)})
+    }, [])
+    useEffect(() => {
+        fetch("/api/tags")
+            .then((response) => response.json())
+            .then((t) => {setTags(t)})
+    }, [])
+    useEffect(() => {
+        fetch("/api/get?id=" + paperId)
+            .then((response) => response.json())
+            .then((p) => {setPaper(p)})
+    }, [paperId])
 
     return (
         <ConfigProvider theme={{
@@ -51,11 +66,11 @@ const App = () => {
                 style={{height: '100vh', overflow: 'hidden', backgroundColor: 'transparent'}}
             >
                 <Sider width={'15em'} style={{backgroundColor: 'transparent', paddingTop: '40px'}}>
-                    <QuickAccess />
+                    <QuickAccess tags={tags} favorite={favorite} recent={recent}/>
                 </Sider>
                 <Layout style={{background: colorBgContainer}}>
                     <Header id="header" style={{background: colorBgContainer, padding: '0em'}}>
-                        <ToolBar isFavorite={isFavorite} />
+                        <ToolBar setPaperId={setPaperId} />
                         <SearchBar />
                     </Header>
                     <Divider type='horizontal' style={{display: 'inline-flex', margin: '0em'}} />
@@ -70,7 +85,7 @@ const App = () => {
                                         <Divider type='vertical' style={{height: '100%'}} />
                                     </Sider>
                                     <Content style={{background: colorBgContainer}}>
-                                        <Paper paper={paperSample} />
+                                        <Paper paper={paper} />
                                     </Content>
                                 </Layout>
                             </Content>

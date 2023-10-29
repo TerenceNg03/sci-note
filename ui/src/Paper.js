@@ -29,17 +29,16 @@ greet('John');
 
 const columns = [
     {
+        title: 'title',
+        key: 'title',
+        dataIndex: 'title',
+        valueType: 'text',
+    },
+    {
         title: 'author',
         key: 'author',
         dataIndex: 'author',
         valueType: 'text',
-    },
-    {
-        title: 'uuid',
-        key: 'uuid',
-        dataIndex: 'uuid',
-        valueType: 'text',
-        editable: false
     },
     {
         title: 'url',
@@ -92,14 +91,14 @@ const columns = [
     },
 ]
 
-const Tags = (paper) => {
-    let l = paper.paper.tags.map(
+const Tags = (props) => {
+    let l = props.tags.map(
         (x) => {return <Tag style={{fontSize: '120%', padding: '0.3em 0.5em'}}>{'#' + x}</Tag>}
     )
     return <Space size={'middle'} style={{marginBottom: '1em'}}>{l}</Space>
 }
 
-const Desc = (paper) => {
+const Desc = (props) => {
     const actionRef = useRef();
     return (
         <ProDescriptions
@@ -107,10 +106,10 @@ const Desc = (paper) => {
             bordered
             style={{paddingBottom: '1em'}}
             formProps={{
-                onValuesChange: (e, f) => console.log(f),
+                onValuesChange: (e, f) => console.log(e, f),
             }}
             title=""
-            request={async () => {return Promise.resolve({success: true, data: paper.paper})}}
+            request={async () => {return Promise.resolve({success: true, data: props.paper})}}
             editable={{
             }}
             column={1}
@@ -119,14 +118,20 @@ const Desc = (paper) => {
     )
 }
 
-const Paper = () => {
+const Paper = (props) => {
     const editor = useEditor({})
-
+    let paper = props.paper;
+    if (paper.paper.length === 0){
+        return <div />
+    }
+    let tags = paper.tags;
+    paper = paper.paper[0];
+    console.log(paper)
     return (
         <ConfigProvider locale={enUSIntl}>
             <div style={{fontSize: '120%', padding: '0em 1em 1em', overflowY: 'scroll', height: '100%'}}>
-                <h1>{paper.name}</h1>
-                <Tags paper={paper} />
+                <h1>{paper.title}</h1>
+                <Tags tags={tags} />
                 <Desc paper={paper} />
                 <Editable
                     editor={editor}

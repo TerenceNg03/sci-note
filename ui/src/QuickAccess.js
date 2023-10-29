@@ -1,17 +1,28 @@
 import {React} from 'react';
 import {Menu} from 'antd';
-
-const menuItems = [
-    getItem('Favorite', 'favorite', null, [getItem('Option 13', '0'), getItem('Option 14', '1')]),
-    getItem('Tags', 'tags', null, [getItem('Option 13', '5'), getItem('Option 14', '6')]),
-    getItem('Recent', 'recent', null, [getItem('Option 13', '3'), getItem('Option 14', '4')]),
-];
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
+import {faCircle} from '@fortawesome/free-solid-svg-icons'
 
 function getItem(label, key, icon, children, type) {
     return {key, icon, children, label, type};
 }
 
-const QuickAccess = () => {
+const QuickAccess = (props) => {
+    var i = 0;
+    let favorite = props.favorite.map((x) => {i = i + 1; return getItem(x.title, i - 1)});
+    let tags = props.tags.map((x) => {
+        i = i + 1;
+        return getItem(x.name, i - 1,
+            <FontAwesomeIcon
+                icon={faCircle}
+                style={{color: 'rgba(' + x.red + ',' + x.green + ',' + x.blue + ',' + x.alpha + ')'}} />)
+    });
+    let recent = props.recent.map((x) => {i = i + 1; return getItem(x, i - 1)});
+    let menuItems = [
+        getItem('Favorite', 'favorite', null, favorite),
+        getItem('Tags', 'tags', null, tags),
+        getItem('Recent', 'recent', null, recent),
+    ];
     return (
         <Menu
             items={menuItems}
