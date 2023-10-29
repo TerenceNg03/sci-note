@@ -1,138 +1,126 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module DataBase (Paper (..), DataBase (..), readDB, DBConfig (..), newPaper, insertPaper, lookupUUID) where
+module DataBase (migrateAll, newPaper, getPaper, getTags, getFavorites, tagPaper, likePaper) where
 
-import Control.Exception (catch)
-import Control.Exception.Base (throw)
-import Control.Monad.Reader (lift)
-import Data.Aeson (FromJSON, ToJSON, eitherDecodeStrict)
-import Data.Int (Int8)
-import Data.Map (Map)
-import qualified Data.Map as Map
-import Data.String (fromString)
-import Data.Text (Text, unpack)
-import Data.UUID (UUID, fromString)
-import Data.UUID.V4 (nextRandom)
-import Fmt (format)
+import Control.Monad (void)
+import Control.Monad.IO.Class (MonadIO)
+import Data.Int (Int64)
+import Data.Text (Text)
+import Data.Word (Word8)
+import Database.Esqueleto.Experimental (Entity, PersistEntity (Key), SqlReadT, Value, entityKey, from, innerJoin, insert, on, select, table, toSqlKey, val, where_, (==.), (^.), type (:&) ((:&)))
+import Database.Persist.Sql (SqlPersistT)
+import Database.Persist.TH (mkMigrate, mkPersist, persistLowerCase, share, sqlSettings)
 import GHC.Generics (Generic)
-import Log (LogT, logAttention_, logInfo_)
-import Optics (makeFieldLabelsNoPrefix, (%~), (&), (^.))
-import System.Directory (createDirectoryIfMissing, getUserDocumentsDirectory)
-import System.FilePath (takeDirectory, (</>))
-import System.IO (readFile')
-import System.IO.Error (isDoesNotExistError)
 
-data Paper = Paper
-    { name :: Text
-    , uuid :: UUID
-    , file :: Map Text FilePath
-    , tags :: [Text]
-    , cite :: Text
-    , url :: Text
-    , notes :: Text
-    }
-    deriving (Generic, Show)
+share
+    [mkPersist sqlSettings, mkMigrate "migrateAll"]
+    [persistLowerCase| 
+Paper json
+    title Text
+    author Text
+    file (Maybe FilePath)
+    cite Text
+    url Text
+    notes Text
 
-makeFieldLabelsNoPrefix ''Paper
+    deriving Show 
+Tag json
+    name Text
+    red Word8
+    green Word8
+    blue Word8
+    alpha Word8
 
-instance ToJSON Paper
-instance FromJSON Paper
+    Primary name
 
-data DataBase = DataBase
-    { papers :: [Paper]
-    , favorites :: [UUID]
-    , tagList :: Map Text (Int8, Int8, Int8)
-    }
-    deriving (Generic, Show)
+    deriving Show Generic
+TagMap
+    tag TagId
+    paper PaperId
 
-defaultDB :: String
-defaultDB = "{\"papers\":[],\"favorites\":[],\"tagList\":{}}"
+    Primary paper
 
-insertPaper :: Paper -> DataBase -> DataBase
-insertPaper paper db =
-    db & #papers %~ (paper :) & #tagList %~ insert newTags
-  where
-    newTags = filter (\t -> Map.member t $ db ^. #tagList) (paper ^. #tags)
-    insert [] = id
-    insert (x : xs) = Map.insert x (255, 255, 255) . insert xs
+    deriving Show
+Favorite json
+    paper PaperId
 
-lookupUUID :: String -> DataBase -> Either Text Paper
-lookupUUID uuid db = guardUUID $ \pid ->
-    case filter (\p -> p ^. #uuid == pid) $ db ^. #papers of
-        (x : _) -> Right x
-        [] -> Left "Invalid uuid"
-  where
-    guardUUID f = case Data.UUID.fromString uuid of
-        Just uid -> f uid
-        Nothing -> Left "Invalid uuid"
+    Primary paper
+    deriving Show
+|]
 
-instance ToJSON DataBase
-instance FromJSON DataBase
-
-makeFieldLabelsNoPrefix ''DataBase
-
-data DBConfig = DBConfig
-    { dbDir :: FilePath
-    , dbFile :: FilePath
-    }
-
-makeFieldLabelsNoPrefix ''DBConfig
-
-newPaper :: IO Paper
-newPaper = do
-    uuid <- nextRandom
-    return
+newPaper :: (MonadIO m) => SqlPersistT m PaperId
+newPaper =
+    insert $
         Paper
-            { name = "Untitled"
-            , uuid
-            , file = Map.empty
-            , tags = []
-            , cite = ""
-            , url = ""
-            , notes = ""
-            }
+            "Untitled"
+            "<author>"
+            Nothing
+            "<cite>"
+            "<paper url>"
+            "# Notes"
 
-buildDBConfig :: IO DBConfig
-buildDBConfig = do
-    docDir <- getUserDocumentsDirectory
-    return
-        DBConfig
-            { dbDir = docDir </> "sci-note"
-            , dbFile = docDir </> "sci-note/db.json"
-            }
+getPaper :: (MonadIO m) => Int64 -> SqlReadT m ([Entity Paper], [Value Text])
+getPaper pid = do
+    tags <- select $ do
+        (a :& b) <-
+            from
+                $ table @TagMap
+                    `innerJoin` table @Tag
+                `on` do \(tm :& t) -> tm.tag ==. t ^. TagId
+        where_ (a.paper ==. val (toSqlKey pid))
+        return b.name
+    paper <- select $ do
+        paper <- from $ table @Paper
+        where_ (paper.id ==. val (toSqlKey pid))
+        return paper
+    return (paper, tags)
 
-readDB :: (LogT IO) (DBConfig, DataBase)
-readDB = do
-    config@DBConfig{..} <- lift buildDBConfig
-    (db, logM) <- lift $ catch ((,return ()) <$> readFile' dbFile) $ \case
-        e
-            | isDoesNotExistError e -> do
-                let logM = logAttention_ $ format "Created db file: {}" dbFile
-                createDirectoryIfMissing True $ takeDirectory dbFile
-                writeFile dbFile defaultDB
-                return (defaultDB, logM)
-            | otherwise -> do
-                let logM = logInfo_ $ format "Failed to read db file: {}" (show e)
-                return ("", logM >> throw e)
-    logM
-    case eitherDecodeStrict (Data.String.fromString db) of
-        Right x -> do
-            logInfo_ $ format "Loaded database: {}" (show dbFile)
-            return (config, x)
-        Left err -> do
-            let msg = format "Failed to decode {}: {}" dbFile err
-            logAttention_ msg
-            error $ unpack msg
+getTags :: (MonadIO m) => SqlReadT m [Entity Tag]
+getTags = select $ from $ table @Tag
+
+getFavorites :: (MonadIO m) => SqlReadT m [(Value PaperId, Value Text)]
+getFavorites = select $ do
+    (a :& b) <-
+        from
+            $ table @Favorite
+                `innerJoin` table @Paper
+            `on` do \(f :& p) -> f.paper ==. p ^. PaperId
+    return (a.paper, b.title)
+
+getTagId :: (MonadIO m) => Text -> SqlPersistT m (Key Tag)
+getTagId name = do
+    tagId <- select $ do
+        tag <- from $ table @Tag
+        where_ (tag.name ==. val name)
+        return tag
+    case tagId of
+        (x : _) -> return $ entityKey x
+        [] -> insert $ Tag name 255 255 255 255
+
+tagPaper :: (MonadIO m) => Int64 -> Text -> SqlPersistT m ()
+tagPaper pid name = void $ do
+    tag <- getTagId name
+    insert $ TagMap tag (toSqlKey pid)
+
+likePaper :: (MonadIO m) => Int64 -> SqlPersistT m ()
+likePaper pid = void $ do
+    insert $ Favorite (toSqlKey pid)

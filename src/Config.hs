@@ -10,16 +10,14 @@
 
 module Config (Config (..)) where
 
-import Control.Concurrent (MVar)
-import Control.Concurrent.STM (TVar)
-import DataBase (DBConfig, DataBase)
+import Network.Socket (PortNumber)
 import Optics (makeFieldLabelsNoPrefix)
 
 data Config = Config
-    { dbConfig :: DBConfig
-    , staticDir :: FilePath
-    , dbT :: TVar DataBase
-    , saveSignal :: MVar ()
+    { staticDir :: FilePath
+    , portNumber :: PortNumber
+    , dbDir :: FilePath
+    , dbFile :: FilePath
     }
 
 makeFieldLabelsNoPrefix ''Config

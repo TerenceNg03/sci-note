@@ -1,28 +1,28 @@
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Server (runServer) where
 
 import Config (Config (..))
-import Control.Concurrent (forkIO, newEmptyMVar, putMVar, readMVar)
-import Control.Concurrent.STM (atomically, modifyTVar, newTVarIO, readTVar, readTVarIO)
-import Control.Exception (SomeException, bracketOnError, catch)
-import Control.Monad.Reader (MonadIO (liftIO), forever)
-import Data.Aeson (encode, encodeFile)
-import Data.Text (Text, pack, unpack)
-import Data.Text.Lazy (fromStrict)
-import DataBase (DBConfig (dbFile), insertPaper, lookupUUID, newPaper, readDB)
+import Control.Exception (bracketOnError)
+import Control.Monad.Trans (liftIO)
+import Data.Aeson (encode, object, (.=))
+import qualified Data.ByteString.Lazy as B
+import Data.Text (pack)
+import DataBase (getFavorites, getPaper, getTags, likePaper, migrateAll, newPaper, tagPaper)
+import Database.Esqueleto.Experimental (unValue)
+import Database.Persist.Sqlite (Entity (entityVal), fromSqlKey, runMigration, runSqlite)
 import Fmt (format)
 import Log (LogT, defaultLogLevel, logInfo_, runLogT)
 import Log.Logger (Logger)
+import Network.HTTP.Types (status400)
 import Network.Socket (Family (AF_INET), SockAddr (SockAddrInet), SocketType (Stream), bind, close, listen, socket, socketPort, tupleToHostAddress, withSocketsDo)
 import Network.Wai (Request (rawPathInfo), requestMethod)
-import Optics ((^.))
 import System.FilePath ((</>))
-import System.IO (hPrint, stderr)
-import Web.Scotty.Trans (ScottyT, captureParam, defaultOptions, file, function, get, matchAny, next, raw, regex, request, scottySocketT, text)
+import System.IO (hPutStrLn, stderr)
+import Web.Scotty.Trans (ScottyT, captureParam, defaultOptions, file, formParam, function, get, matchAny, next, post, queryParam, raiseStatus, raw, regex, request, scottySocketT)
 
 dispatch :: Config -> ScottyT (LogT IO) ()
 dispatch Config{..} = do
@@ -30,75 +30,64 @@ dispatch Config{..} = do
         r <- request
         logInfo_ $ format "{} {}" (show $ requestMethod r) (show $ rawPathInfo r)
         next
-    get "/api/papers/new" $ do
-        paper <- liftIO newPaper
-        runSTM $ modifyTVar dbT $ insertPaper paper
-        saveFile
-        raw $ encode paper
-    get "/api/papers/uuid/:uuid" $ do
-        uuid <- captureParam "uuid"
-        result <- runSTM $ do
-            db <- readTVar dbT
-            return $ lookupUUID uuid db
-        case result of
-            Left err -> reportError $ unpack err
-            Right paper -> raw $ encode paper
+    post "/api/new" $ do
+        pid <- runSql newPaper
+        raw $ encode $ object ["id" .= fromSqlKey pid]
+    get "/api/get" $ do
+        pid <- queryParam "id"
+        (paper, tags) <- runSql $ getPaper pid
+        raw $
+            encode $
+                object
+                    [ "paper" .= map entityVal (take 1 paper)
+                    , "tags" .= map unValue tags
+                    ]
     get "/api/favorites" $ do
-        db <- runSTM $ readTVar dbT
-        raw $ encode $ db ^. #favorites
+        favorites <- runSql getFavorites
+        raw $ encode $ flip map favorites $ \(a, b) ->
+            object
+                [ "id" .= fromSqlKey (unValue a)
+                , "title" .= unValue b
+                ]
     get "/api/tags" $ do
-        db <- runSTM $ readTVar dbT
-        raw $ encode $ db ^. #tagList
+        tags <- runSql getTags
+        raw $ encode $ map entityVal tags
+    post "/api/tag" $ do
+        pid <- formParam "id"
+        tag <- formParam "tag"
+        runSql $ tagPaper pid tag
+    post "/api/favorite" $ do
+        pid <- formParam "id"
+        runSql $ likePaper pid
     get (regex "^/api(/.*)?") $ do
         r <- request
-        logInfo_ $ format "Invalid api request: {} {}" (show $ requestMethod r) (show $ rawPathInfo r)
-        reportError "API request not recognized"
+        let err = format "Invalid API Request: {} {}" (show $ requestMethod r) (show $ rawPathInfo r)
+        logInfo_ err
+        raiseStatus status400 "Invalid API request"
     get "/" $ file $ staticDir </> "index.html"
     get (regex "^/.*") $ do
         path <- captureParam "0"
         file $ staticDir </> drop 1 path
   where
-    runSTM a = liftIO $ atomically a
-    saveFile = liftIO $ putMVar saveSignal ()
-    reportError err = raw $ encode ("error" :: String, err :: String)
+    runSql = runSqlite $ pack dbFile
 
-serverFailed :: Text -> (ScottyT (LogT IO)) ()
-serverFailed msg = do
-    matchAny (function $ const $ Just []) $ do
-        r <- request
-        logInfo_ $ format "{} {}" (show $ requestMethod r) (show $ rawPathInfo r)
-        next
-    get "/" $ text $ fromStrict msg
-
-runServer :: FilePath -> Logger -> IO ()
-runServer staticDir logger = withSocketsDo $ do
-    bracketOnError newSocket close $ \sock -> do
-        bind sock $ SockAddrInet 0 $ tupleToHostAddress (127, 0, 0, 1)
-        listen sock 1024
-        port <- socketPort sock
-        hPrint stderr port
-        runLog $ do
+runServer :: Config -> Logger -> IO ()
+runServer config@Config{..} logger = withSocketsDo $ bracketOnError newSocket close $ \sock -> do
+    bind sock $ SockAddrInet portNumber $ tupleToHostAddress (127, 0, 0, 1)
+    listen sock 1024
+    port <- socketPort sock
+    runLog $
+        do
+            runSqlite (pack dbFile) (runMigration migrateAll)
+            liftIO $
+                B.hPutStr stderr $
+                    encode $
+                        object
+                            ["error" .= False, "port" .= show port]
+            liftIO $ hPutStrLn stderr ""
             logInfo_ $ format "Server will be at http://localhost:{}" (show port)
             logInfo_ $ format "Serving static files from '{}'" staticDir
-        result <- catch (runLog $ Right <$> readDB) $ \e -> return $ Left (show (e :: SomeException))
-        case result of
-            Left err -> scottySocketT defaultOptions sock runLog (serverFailed $ pack err)
-            Right (dbConfig, db) -> do
-                dbT <- newTVarIO db
-                saveSignal <- newEmptyMVar
-                let config =
-                        Config
-                            { staticDir
-                            , dbConfig
-                            , dbT
-                            , saveSignal
-                            }
-                _ <- forkIO $ writeDB config
-                scottySocketT defaultOptions sock runLog (dispatch config)
+            scottySocketT defaultOptions sock runLog (dispatch config)
   where
     newSocket = socket AF_INET Stream 0
     runLog = runLogT "main" logger defaultLogLevel
-    writeDB Config{saveSignal, dbT, dbConfig} = forever $ do
-        _ <- readMVar saveSignal
-        db' <- readTVarIO dbT
-        encodeFile (dbFile dbConfig) db'

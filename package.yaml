@@ -22,6 +22,7 @@ description:         Please see the README on GitHub at <https://github.com/Tere
 dependencies:
 - base >= 4.7 && < 5
 - scotty
+- http-types
 - network
 - wai
 - filepath
@@ -34,7 +35,12 @@ dependencies:
 - mtl
 - optics
 - fmt
-- uuid
+- persistent-sqlite
+- persistent
+- esqueleto
+- bytestring
+- cmdargs
+
 
 ghc-options:
 - -Wall
